@@ -1,0 +1,4 @@
+include_rules = [
+  "+components/brave_shields/core/browser",
+  "+services/network/host_resolver.h",
+]

@@ -1,0 +1,52 @@
+# Copyright (c) 2023 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import("//mojo/public/tools/bindings/mojom.gni")
+
+static_library("common") {
+  sources = [
+    "brave_shield_constants.h",
+    "brave_shields_settings_values.h",
+    "features.cc",
+    "features.h",
+    "pref_names.h",
+  ]
+
+  deps = [
+    "//base",
+    "//components/brave_shields/core/common:mojom",
+    "//components/brave_shields/core/common:mojom_shared__generator",
+    "//components/content_settings/core/common",
+    "//net",
+    "//ui/base",
+    "//url",
+  ]
+}
+
+mojom_component("mojom") {
+  output_prefix = "brave_shields_mojom"
+  macro_prefix = "BRAVE_SHIELDS_MOJOM"
+
+  generate_java = true
+  sources = [
+    "filter_list.mojom",
+    "shields_settings.mojom",
+  ]
+
+  deps = [
+    "//components/content_settings/core/common:content_settings_types",
+    "//components/content_settings/core/common:mojo_bindings",
+  ]
+
+  public_deps = [
+    "//mojo/public/mojom/base",
+    "//ui/gfx/geometry/mojom",
+    "//url/mojom:url_mojom_gurl",
+  ]
+
+  export_class_attribute_blink = "BLINK_PLATFORM_EXPORT"
+  export_define_blink = "BLINK_PLATFORM_IMPLEMENTATION=1"
+  export_header_blink = "third_party/blink/public/platform/web_common.h"
+}

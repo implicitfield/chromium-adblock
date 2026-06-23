@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<grit-part>
+  <message name="IDS_BRAVE_ELEMENT_PICKER_CREATE_BTN_DISABLED_LABEL" desc="Label for Element picker's create button in disabled state">
+    Select element you want to block
+  </message>
+  <message name="IDS_BRAVE_ELEMENT_PICKER_CREATE_BTN_ENABLED_LABEL" desc="Label for Element picker's create button in enabled state">
+    Block Elements
+  </message>
+  <message name="IDS_BRAVE_ELEMENT_PICKER_SHOW_RULES_BTN_LABEL" desc="Label for Element picker's show rules button">
+    Show rules
+  </message>
+  <message name="IDS_BRAVE_ELEMENT_PICKER_HIDE_RULES_BTN_LABEL" desc="Label for Element picker's hide rules button">
+    Hide rules
+  </message>
+  <message name="IDS_BRAVE_ELEMENT_PICKER_QUIT_BTN_LABEL" desc="Label for Element picker's quit button">
+    Cancel
+  </message>
+</grit-part>

@@ -1,0 +1,33 @@
+# Copyright 2026 The ungoogled-chromium Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This file has been completely rewritten since base Chromium does not
+# have a transpile_web_ui helper.
+
+import("//tools/typescript/ts_library.gni")
+
+ts_library("content") {
+  root_dir = "."
+  out_dir = "$target_gen_dir/tsc"
+  in_files = [ "content_cosmetic.ts" ]
+  # This is needed to avoid making this a module since it's executed
+  # as a script.
+  tsconfig_base = "tsconfig_base.json"
+}
+
+ts_library("picker") {
+  root_dir = "."
+  out_dir = "$target_gen_dir/tsc"
+  in_files = [ "element_picker.ts" ]
+  # This is needed to avoid making this a module since it's executed
+  # as a script.
+  tsconfig_base = "tsconfig_base.json"
+}
+
+group("resources") {
+  deps = [
+    ":content",
+    ":picker",
+  ]
+}

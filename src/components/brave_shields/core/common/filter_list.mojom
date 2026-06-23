@@ -1,0 +1,30 @@
+// Copyright (c) 2023 The Brave Authors. All rights reserved.
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at https://mozilla.org/MPL/2.0/.
+
+module brave_shields.mojom;
+
+import "url/mojom/url.mojom";
+import "mojo/public/mojom/base/time.mojom";
+import "mojo/public/mojom/base/values.mojom";
+
+struct SubscriptionInfo {
+  bool enabled;
+  string title;
+  string homepage;
+  string last_updated_pretty_text;
+  url.mojom.Url subscription_url;
+  mojo_base.mojom.Time last_update_attempt;
+  mojo_base.mojom.Time last_successful_update_attempt;
+  uint16 expires;
+};
+
+interface FilterListAndroidHandler {
+  GetSubscriptions() => (array<SubscriptionInfo> subscriptions);
+  CreateSubscription(url.mojom.Url subscription_url);
+  EnableSubscription(url.mojom.Url sub_url, bool enabled);
+  DeleteSubscription(url.mojom.Url sub_url);
+  GetCustomFilters() => (string custom_filters);
+  UpdateCustomFilters(string custom_filters) => (bool is_updated);
+};

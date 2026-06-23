@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<grit-part>
+  <include name="IDR_COSMETIC_FILTERS_COSMETIC_FILTERS_BUNDLE_JS" file="${root_gen_dir}\components\cosmetic_filters\resources\tsc\content_cosmetic.js" use_base_dir="false" type="BINDATA" />
+  <include name="IDR_COSMETIC_FILTERS_ELEMENT_PICKER_BUNDLE_JS" file="${root_gen_dir}\components\cosmetic_filters\resources\tsc\element_picker.js" use_base_dir="false" type="BINDATA" />
+</grit-part>
