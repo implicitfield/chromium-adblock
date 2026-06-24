@@ -35,7 +35,7 @@ Then apply `core.patch`:
 $ patch -p1 -d /path/to/source/tree < core.patch
 ```
 
-Then get new creates and reconfigure old ones. Note that this requires connecting to `crates.io`:
+Then get new crates and reconfigure old ones. Note that this requires connecting to `crates.io`:
 ```sh
 ## this file is missing for some reason
 $ echo '{"files":{}}' > third_party/rust/chromium_crates_io/vendor/hex-v0_4/.cargo-checksum.json
@@ -51,10 +51,10 @@ Then build as usual.
 
 ### Dev notes
 
-NOTE: if the `adblock` create's `BUILD.gn` contains `testonly = true`, then you'll need to find
+NOTE: if the `adblock` crate's `BUILD.gn` contains `testonly = true`, then you'll need to find
 at least one relevant dependency in `third_party/rust/chromium_crates_io/gnrt_config.toml`
 that has `group = 'test'`. Remove those group specifiers from relevant dependencies,
-and `gnrt gen` should no longer mark the create as `testonly`.
+and `gnrt gen` should no longer mark the crate as `testonly`.
 
 This is currently handled in `core.patch`, but might be useful information when updating this.
 
