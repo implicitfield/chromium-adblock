@@ -890,6 +890,72 @@
        <part file="dom_distiller_resources.grdp" />
        <part file="neterror_resources.grdp" />
        <part file="notifications_global_cache_list.grdp" />
+--- a/components/value_store/value_store_frontend.cc
++++ b/components/value_store/value_store_frontend.cc
+@@ -33,6 +33,37 @@ class ValueStoreFrontend::Backend : public base::RefCountedThreadSafe<Backend> {
+   Backend(const Backend&) = delete;
+   Backend& operator=(const Backend&) = delete;
+ 
++  void GetKeys(ValueStoreFrontend::ReadCallback callback) {
++    DCHECK(file_task_runner_->RunsTasksInCurrentSequence());
++    LazyInit();
++    ValueStore::ReadResult result = storage_->GetKeys();
++
++    std::optional<base::Value> value;
++    if (result.status().ok()) {
++      value = base::Value(base::Value::Type::DICT);
++      base::DictValue& dict_value = value->GetDict();
++      for (auto [key, _] : result.settings()) {
++        // NOTE: GetKeys() populates the values with dummy values.
++        // We have to call Get on the key itself to retrieve
++        // the actual values.
++        ValueStore::ReadResult value_result = storage_->Get(key);
++        if (!value_result.status().ok()) {
++            LOG(WARNING) << "Reading " << key << " from " << db_path_.value()
++                         << " failed: " << result.status().message;
++            continue;
++        }
++        dict_value.Set(key, *value_result.settings().Extract(key));
++      }
++    } else {
++      LOG(WARNING) << "Reading keys from " << db_path_.value()
++                   << " failed: " << result.status().message;
++    }
++
++    origin_task_runner_->PostTask(
++        FROM_HERE, base::BindOnce(&ValueStoreFrontend::Backend::RunCallback,
++                                  this, std::move(callback), std::move(value)));
++  }
++
+   void Get(const std::string& key, ValueStoreFrontend::ReadCallback callback) {
+     DCHECK(file_task_runner_->RunsTasksInCurrentSequence());
+     LazyInit();
+@@ -127,6 +158,14 @@ ValueStoreFrontend::~ValueStoreFrontend() {
+   DCHECK(origin_task_runner_->RunsTasksInCurrentSequence());
+ }
+ 
++void ValueStoreFrontend::GetKeys(ReadCallback callback) {
++  DCHECK(origin_task_runner_->RunsTasksInCurrentSequence());
++
++  file_task_runner_->PostTask(
++      FROM_HERE, base::BindOnce(&ValueStoreFrontend::Backend::GetKeys, backend_,
++                                std::move(callback)));
++}
++
+ void ValueStoreFrontend::Get(const std::string& key, ReadCallback callback) {
+   DCHECK(origin_task_runner_->RunsTasksInCurrentSequence());
+ 
+--- a/components/value_store/value_store_frontend.h
++++ b/components/value_store/value_store_frontend.h
+@@ -35,6 +35,8 @@ class ValueStoreFrontend {
+   ValueStoreFrontend(const ValueStoreFrontend&) = delete;
+   ValueStoreFrontend& operator=(const ValueStoreFrontend&) = delete;
+ 
++  void GetKeys(ValueStoreFrontend::ReadCallback callback);
++
+   // Retrieves a value from the database asynchronously, passing a copy to
+   // |callback| when ready. NULL is passed if no matching entry is found.
+   void Get(const std::string& key, ReadCallback callback);
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
 @@ -875,6 +875,8 @@ source_set("browser") {

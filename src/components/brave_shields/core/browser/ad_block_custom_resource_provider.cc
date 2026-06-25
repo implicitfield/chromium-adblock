@@ -29,7 +29,6 @@ namespace {
 constexpr const char kStorageUMA[] = "AdBlock Custom Resources";
 constexpr const base::FilePath::CharType kStorageName[] =
     FILE_PATH_LITERAL("AdBlock Custom Resources");
-constexpr const char kStorageScriptletsKey[] = "SCRIPTLETS";
 
 constexpr const char kNameField[] = "name";
 constexpr const char kContentField[] = "content";
@@ -40,7 +39,7 @@ bool HasName(const base::Value& resource) {
   return resource.is_dict() && !!resource.GetDict().FindString(kNameField);
 }
 
-bool IsValidResource(const base::Value& resource) {
+bool IsValidResource(const base::Value& resource, bool is_scriptlet) {
   if (!HasName(resource)) {
     return false;
   }
@@ -59,12 +58,7 @@ bool IsValidResource(const base::Value& resource) {
     return false;
   }
 
-  if (*mime == kAppJs) {
-    // Resource is a scriptlet:
-    if (!name->ends_with(".js")) {
-      return false;
-    }
-  } else {
+  if (is_scriptlet && (*mime != kAppJs || !name->ends_with(".js"))) {
     return false;
   }
 
@@ -109,14 +103,52 @@ AdBlockCustomResourceProvider::~AdBlockCustomResourceProvider() {
   default_resource_provider_->RemoveObserver(this);
 }
 
+void AdBlockCustomResourceProvider::GetKeys(
+    base::OnceCallback<void(base::Value)> callback) {
+  if (!storage_) {
+    CHECK_IS_TEST();
+    return std::move(callback).Run(base::Value(base::Value::Type::LIST));
+  }
+  storage_->GetKeys(
+      base::BindOnce(
+          [](base::OnceCallback<void(base::Value)> callback,
+             std::optional<base::Value> value) {
+            if (value && value->is_dict()) {
+              std::move(callback).Run(std::move(*value));
+            } else {
+              std::move(callback).Run(base::Value(base::Value::Type::DICT));
+            }
+          },
+          std::move(callback)));
+}
+
+void AdBlockCustomResourceProvider::RemoveKey(const std::string& key,
+                                              StatusCallback on_complete) {
+  if (!storage_) {
+    CHECK_IS_TEST();
+    std::move(on_complete).Run(ErrorCode::kOk);
+    return;
+  }
+
+  storage_->Remove(key);
+
+  for (auto& observer : observers_) {
+    observer.OnCustomResourcesChanged();
+  }
+
+  ReloadResourcesAndNotify();
+  std::move(on_complete).Run(ErrorCode::kOk);
+}
+
 void AdBlockCustomResourceProvider::GetCustomResources(
+    const std::string& key,
     base::OnceCallback<void(base::Value)> callback) {
   if (!storage_) {
     CHECK_IS_TEST();
     return std::move(callback).Run(base::Value(base::Value::Type::LIST));
   }
   storage_->Get(
-      kStorageScriptletsKey,
+      key,
       base::BindOnce(
           [](base::OnceCallback<void(base::Value)> callback,
              std::optional<base::Value> value) {
@@ -129,38 +161,42 @@ void AdBlockCustomResourceProvider::GetCustomResources(
           std::move(callback)));
 }
 
-void AdBlockCustomResourceProvider::AddResource(PrefService* profile_prefs,
+void AdBlockCustomResourceProvider::AddResource(const std::string& key,
+                                                PrefService* profile_prefs,
                                                 const base::Value& resource,
                                                 StatusCallback on_complete) {
-  if (!IsValidResource(resource)) {
+  if (!IsValidResource(resource, key == kStorageScriptletsKey)) {
     return std::move(on_complete).Run(ErrorCode::kInvalid);
   }
-  GetCustomResources(
+  GetCustomResources(key,
       base::BindOnce(&AdBlockCustomResourceProvider::AddResourceInternal,
-                     weak_ptr_factory_.GetWeakPtr(), resource.Clone(),
+                     weak_ptr_factory_.GetWeakPtr(), key, resource.Clone(),
                      std::move(on_complete)));
 }
 
-void AdBlockCustomResourceProvider::UpdateResource(PrefService* profile_prefs,
+void AdBlockCustomResourceProvider::UpdateResource(const std::string& key,
+                                                   PrefService* profile_prefs,
                                                    const std::string& old_name,
                                                    const base::Value& resource,
                                                    StatusCallback on_complete) {
-  if (!IsValidResource(resource)) {
+  if (!IsValidResource(resource, key == kStorageScriptletsKey)) {
     return std::move(on_complete).Run(ErrorCode::kInvalid);
   }
-  GetCustomResources(
+  GetCustomResources(key,
       base::BindOnce(&AdBlockCustomResourceProvider::UpdateResourceInternal,
-                     weak_ptr_factory_.GetWeakPtr(), old_name, resource.Clone(),
-                     std::move(on_complete)));
+                     weak_ptr_factory_.GetWeakPtr(), key, old_name,
+                     resource.Clone(), std::move(on_complete)));
 }
 
 void AdBlockCustomResourceProvider::RemoveResource(
+    const std::string& key,
     PrefService* profile_prefs,
     const std::string& resource_name,
     StatusCallback on_complete) {
-  GetCustomResources(base::BindOnce(
+  GetCustomResources(key, base::BindOnce(
       &AdBlockCustomResourceProvider::RemoveResourceInternal,
-      weak_ptr_factory_.GetWeakPtr(), resource_name, std::move(on_complete)));
+      weak_ptr_factory_.GetWeakPtr(), key, resource_name,
+      std::move(on_complete)));
 }
 
 void AdBlockCustomResourceProvider::AddObserver(
@@ -203,6 +239,7 @@ void AdBlockCustomResourceProvider::OnResourcesLoaded(
 }
 
 void AdBlockCustomResourceProvider::AddResourceInternal(
+    const std::string& key,
     base::Value resource,
     StatusCallback on_complete,
     base::Value resources) {
@@ -212,12 +249,13 @@ void AdBlockCustomResourceProvider::AddResourceInternal(
     return std::move(on_complete).Run(ErrorCode::kAlreadyExists);
   }
   list.Append(std::move(resource));
-  SaveResources(std::move(resources));
+  SaveResources(key, std::move(resources));
   ReloadResourcesAndNotify();
   std::move(on_complete).Run(ErrorCode::kOk);
 }
 
 void AdBlockCustomResourceProvider::UpdateResourceInternal(
+    const std::string& key,
     const std::string& old_name,
     base::Value resource,
     StatusCallback on_complete,
@@ -237,12 +275,13 @@ void AdBlockCustomResourceProvider::UpdateResourceInternal(
   }
 
   *updated_resource = std::move(resource);
-  SaveResources(std::move(resources));
+  SaveResources(key, std::move(resources));
   ReloadResourcesAndNotify();
   std::move(on_complete).Run(ErrorCode::kOk);
 }
 
 void AdBlockCustomResourceProvider::RemoveResourceInternal(
+    const std::string& key,
     const std::string& name,
     StatusCallback on_complete,
     base::Value resources) {
@@ -250,7 +289,7 @@ void AdBlockCustomResourceProvider::RemoveResourceInternal(
   auto updated_resource = FindResource(resources.GetList(), name);
   if (updated_resource != resources.GetList().end()) {
     resources.GetList().erase(updated_resource);
-    SaveResources(std::move(resources));
+    SaveResources(key, std::move(resources));
     ReloadResourcesAndNotify();
     std::move(on_complete).Run(ErrorCode::kOk);
   } else {
@@ -258,12 +297,13 @@ void AdBlockCustomResourceProvider::RemoveResourceInternal(
   }
 }
 
-void AdBlockCustomResourceProvider::SaveResources(base::Value resources) {
+void AdBlockCustomResourceProvider::SaveResources(const std::string& key,
+                                                  base::Value resources) {
   if (!storage_) {
     CHECK_IS_TEST();
     return;
   }
-  storage_->Set(kStorageScriptletsKey, std::move(resources));
+  storage_->Set(key, std::move(resources));
 
   for (auto& observer : observers_) {
     observer.OnCustomResourcesChanged();
@@ -273,7 +313,7 @@ void AdBlockCustomResourceProvider::SaveResources(base::Value resources) {
 void AdBlockCustomResourceProvider::OnDefaultResourcesLoaded(
     base::OnceCallback<void(AdblockResourceStorageBox)> on_load,
     AdblockResourceStorageBox storage) {
-  GetCustomResources(base::BindOnce(
+  GetKeys(base::BindOnce(
       &AdBlockCustomResourceProvider::OnCustomResourcesLoaded,
       weak_ptr_factory_.GetWeakPtr(), std::move(on_load), std::move(storage)));
 }
@@ -282,24 +322,42 @@ void AdBlockCustomResourceProvider::OnCustomResourcesLoaded(
     base::OnceCallback<void(AdblockResourceStorageBox)> on_load,
     AdblockResourceStorageBox default_storage,
     base::Value custom_resources) {
-  CHECK(custom_resources.is_list());
+  CHECK(custom_resources.is_dict());
 
-  if (custom_resources.GetList().empty()) {
+  auto no_op_exit = [&]() {
     cached_storage_ = AdblockResourceStorageBox(std::move(default_storage));
     std::move(on_load).Run(
         adblock::clone_resource_storage(*cached_storage_.value()));
-  } else {
-    auto custom_resources_json = base::WriteJson(custom_resources);
-    if (!custom_resources_json) {
-      std::move(on_load).Run(std::move(default_storage));
-    } else {
-      auto merged_storage = adblock::extend_resource_storage(
-          *default_storage, *custom_resources_json);
-      cached_storage_ = AdblockResourceStorageBox(std::move(merged_storage));
-      std::move(on_load).Run(
-          adblock::clone_resource_storage(*cached_storage_.value()));
-    }
+  };
+
+  if (custom_resources.GetDict().empty()) {
+    no_op_exit();
+    return;
   }
+
+  auto merged_storage = clone_resource_storage(*default_storage);
+
+  bool extended = false;
+  for (auto [key, value] : custom_resources.GetDict()) {
+    CHECK(value.is_list());
+    if (value.GetList().empty())
+      continue;
+    auto custom_resources_json = base::WriteJson(value);
+    if (!custom_resources_json)
+      continue;
+    extended = true;
+    merged_storage = adblock::extend_resource_storage(
+        *merged_storage, *custom_resources_json);
+  }
+
+  if (!extended) {
+    no_op_exit();
+    return;
+  }
+
+  cached_storage_ = std::move(merged_storage);
+  std::move(on_load).Run(
+      adblock::clone_resource_storage(*cached_storage_.value()));
 }
 
 void AdBlockCustomResourceProvider::ReloadResourcesAndNotify() {

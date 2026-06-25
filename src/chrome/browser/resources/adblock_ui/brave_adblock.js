@@ -19,7 +19,17 @@ function updateSubscription(element) {
 }
 function removeScriptlet(element) {
   var url = element.parentNode.nextSibling.firstElementChild.value;
-  sendWithPromise('brave_adblock.removeCustomScriptlet', url).then((code) => {
+  sendWithPromise('brave_adblock.removeCustomResource', 'SCRIPTLETS', url).then((code) => {
+    console.log("removal status: " + code);
+    if (code == 0) {
+      var tr = element.parentNode.parentNode;
+      tr.parentNode.removeChild(tr);
+    }
+  });
+}
+function removeBundle(element) {
+  var key = element.parentNode.nextSibling.firstElementChild.value;
+  sendWithPromise('brave_adblock.removeCustomResourceKey', key).then((code) => {
     console.log("removal status: " + code);
     if (code == 0) {
       var tr = element.parentNode.parentNode;
@@ -45,7 +55,7 @@ function addScriptletToTable(scriptlet) {
   var td_base64 = tr.appendChild(document.createElement("td"));
   var button = td_button.appendChild(document.createElement("button"));
   button.addEventListener("click", (event) => {
-      removeScriptlet(event.currentTarget);
+    removeScriptlet(event.currentTarget);
   });
   button.classList = "remove"
   button.innerText = "X";
@@ -58,6 +68,23 @@ function addScriptletToTable(scriptlet) {
 
   area_name.value = scriptlet.name;
   area_base64.value = scriptlet.content;
+}
+function addBundleToTable(key) {
+  var tr = document.createElement("tr");
+  var td_button = tr.appendChild(document.createElement("td"));
+  var td_key = tr.appendChild(document.createElement("td"));
+  var button = td_button.appendChild(document.createElement("button"));
+  button.addEventListener("click", (event) => {
+    removeBundle(event.currentTarget);
+  });
+  button.classList = "remove"
+  button.innerText = "X";
+  var area_name = td_key.appendChild(document.createElement("textarea"));
+  area_name.disabled = true;
+  var element = document.getElementById('customBundles').firstElementChild;
+  element.insertBefore(tr, element.lastElementChild.nextSibling);
+
+  area_name.value = key;
 }
 // WARNING: Trying to do this in parallel breaks the import process.
 // That's why this is a recursive function XD.
@@ -77,7 +104,7 @@ function importScriptlet(index) {
       },
       content: btoa(e.target.result),
     };
-    sendWithPromise("brave_adblock.addCustomScriptlet", dict).then((code) => {
+    sendWithPromise("brave_adblock.addCustomResource", 'SCRIPTLETS', dict).then((code) => {
       console.log("import status: " + code);
       if (code != 0)
         return;
@@ -86,6 +113,33 @@ function importScriptlet(index) {
     });
   }
   reader.readAsBinaryString(file);
+}
+
+function addBundleImpl(key, json, index) {
+  if (index >= json.length) {
+    if (index > 0)
+      addBundleToTable(key);
+    return;
+  }
+  sendWithPromise("brave_adblock.addCustomResource", key, json[index]).then((code) => {
+    console.log("import status: " + code);
+    if (code != 0) {
+      if (index > 0)
+        addBundleToTable(key);
+      return;
+    }
+    addBundleImpl(key, json, index + 1);
+  });
+}
+
+function addBundle() {
+  const file = document.getElementById("bundleFile").files[0];
+  const key = file.name.replace(".json", "");
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    addBundleImpl(key, JSON.parse(e.target.result), 0);
+  };
+  reader.readAsText(file);
 }
 
 function onGetCustomFilters(customFilters) {
@@ -145,6 +199,7 @@ document.getElementById("importButton").addEventListener("click", () => {
   importScriptlet(0);
   event.currentTarget.value = [];
 });
+document.getElementById("importBundleButton").addEventListener("click", addBundle);
 
 window.brave_adblock = {
   onGetCustomFilters,
@@ -155,13 +210,20 @@ window.brave_adblock = {
 chrome.send('brave_adblock.getCustomFilters');
 chrome.send('brave_adblock.getListSubscriptions');
 
-sendWithPromise('brave_adblock.getCustomScriptlets').then((scriptlets) => {
+sendWithPromise('brave_adblock.getCustomResources', 'SCRIPTLETS').then((scriptlets) => {
   console.log("received scriptlets");
   var element = document.getElementById('customScriptlets').firstElementChild;
-  while (element.childElementCount > 1) {
-    element.removeChild(element.lastChild);
-  }
   for (const scriptlet of scriptlets) {
     addScriptletToTable(scriptlet);
+  }
+});
+
+sendWithPromise('brave_adblock.getCustomResourceKeys').then((resourceKeys) => {
+  console.log("received keys");
+  if (resourceKeys.hasOwnProperty('SCRIPTLETS'))
+    delete resourceKeys['SCRIPTLETS'];
+  var element = document.getElementById('customBundles').firstElementChild;
+  for (const key of Object.keys(resourceKeys)) {
+    addBundleToTable(key);
   }
 });

@@ -13,8 +13,9 @@ This means:
 - Cname uncloaking is always enabled
 - No builtin filters or scriptlets
 - No additional connections are made by default
+- Support for importing arbitrary resources
 
-This currently targets version `149.0.7827.155` of Chromium.
+This currently targets version `149.0.7827.196` of Chromium.
 
 ## License
 
@@ -73,30 +74,14 @@ https://github.com/uBlockOrigin/uAssets/raw/refs/heads/master/filters/filters.tx
 https://github.com/uBlockOrigin/uAssets/raw/refs/heads/master/filters/quick-fixes.txt
 ```
 
-## Sourcing the scriptlets
+## Sourcing resources
 
-The scriptlets need to either be IIFEs, or functions of the form:
-```
-function someName(arg1, arg2, arg3, etc)
-(crucially, this also works):
-function someName(...args)
-```
-
-AFAIK no existing library comes distributed like this out of the box, so the `gen.js` script is provided to adapt adguard's scriptlets into the above form.
-You can either build those yourself from `https://github.com/AdguardTeam/Scriptlets`, or you can get the built bundle from any random CDN:
+To bundle resources from uBlock Origin in a suitable form, you can use the `gen-ublock-resources.js` script like so:
 ```sh
-$ curl -O 'https://cdn.jsdelivr.net/npm/@adguard/scriptlets@2.4.2/dist/scriptlets/index.js'
-$ sha512sum index.js
-201e75525f423c25bbafa74327b258f4dc347cbf8f20e4df679153d939358bc58e33230e458de59bd80dc7708efba067b7a714954f4a109f47d4dd7724141ed6  index.js
+node gen-ublock-resources.js /path/to/uBO/repository uBlockResources.json
 ```
 
-Then run `gen.js` like so (in the same directory as `index.js`):
-```sh
-mkdir scriptlets
-node gen.js
-```
-
-Then you can import the `scriptlets` folder via the file selector in `chrome://adblock` (it only supports adding directories due to limitations with `<input type="file">`).
+Then you can import that JSON file as a resource bundle via the first file selector in `chrome://adblock`.
 
 ## Exporting sources back to this repository
 

@@ -70,16 +70,18 @@ class AdblockDOMHandler
   void HandleRefreshSubscription(const base::ListValue& args);
   void HandleViewSubscriptionSource(const base::ListValue& args);
 
-  void OnGetCustomScriptlets(const std::string& callback_id,
+  void OnGetCustomResources(const std::string& callback_id,
                              base::Value custom_resources);
-  void OnScriptletUpdateStatus(
+  void OnResourceUpdateStatus(
       const std::string& callback_id,
       brave_shields::AdBlockCustomResourceProvider::ErrorCode error_code);
 
-  void HandleGetCustomScriptlets(const base::ListValue& args);
-  void HandleAddCustomScriptlet(const base::ListValue& args);
-  void HandleUpdateCustomScriptlet(const base::ListValue& args);
-  void HandleRemoveCustomScriptlet(const base::ListValue& args);
+  void HandleGetCustomResources(const base::ListValue& args);
+  void HandleGetCustomResourceKeys(const base::ListValue& args);
+  void HandleAddCustomResource(const base::ListValue& args);
+  void HandleUpdateCustomResource(const base::ListValue& args);
+  void HandleRemoveCustomResource(const base::ListValue& args);
+  void HandleRemoveCustomResourceKey(const base::ListValue& args);
 
   void RefreshSubscriptionsList();
 
@@ -130,20 +132,28 @@ void AdblockDOMHandler::RegisterMessages() {
                           base::Unretained(this)));
 
   web_ui()->RegisterMessageCallback(
-      "brave_adblock.getCustomScriptlets",
-      base::BindRepeating(&AdblockDOMHandler::HandleGetCustomScriptlets,
+      "brave_adblock.getCustomResources",
+      base::BindRepeating(&AdblockDOMHandler::HandleGetCustomResources,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
-      "brave_adblock.addCustomScriptlet",
-      base::BindRepeating(&AdblockDOMHandler::HandleAddCustomScriptlet,
+      "brave_adblock.getCustomResourceKeys",
+      base::BindRepeating(&AdblockDOMHandler::HandleGetCustomResourceKeys,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
-      "brave_adblock.updateCustomScriptlet",
-      base::BindRepeating(&AdblockDOMHandler::HandleUpdateCustomScriptlet,
+      "brave_adblock.addCustomResource",
+      base::BindRepeating(&AdblockDOMHandler::HandleAddCustomResource,
                           base::Unretained(this)));
   web_ui()->RegisterMessageCallback(
-      "brave_adblock.removeCustomScriptlet",
-      base::BindRepeating(&AdblockDOMHandler::HandleRemoveCustomScriptlet,
+      "brave_adblock.updateCustomResource",
+      base::BindRepeating(&AdblockDOMHandler::HandleUpdateCustomResource,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "brave_adblock.removeCustomResource",
+      base::BindRepeating(&AdblockDOMHandler::HandleRemoveCustomResource,
+                          base::Unretained(this)));
+  web_ui()->RegisterMessageCallback(
+      "brave_adblock.removeCustomResourceKey",
+      base::BindRepeating(&AdblockDOMHandler::HandleRemoveCustomResourceKey,
                           base::Unretained(this)));
 }
 
@@ -327,13 +337,13 @@ void AdblockDOMHandler::RefreshSubscriptionsList() {
   CallJavascriptFunction("brave_adblock.onGetListSubscriptions", list_value);
 }
 
-void AdblockDOMHandler::OnGetCustomScriptlets(const std::string& callback_id,
+void AdblockDOMHandler::OnGetCustomResources(const std::string& callback_id,
                                               base::Value custom_resources) {
   AllowJavascript();
   ResolveJavascriptCallback(callback_id, custom_resources);
 }
 
-void AdblockDOMHandler::OnScriptletUpdateStatus(
+void AdblockDOMHandler::OnResourceUpdateStatus(
     const std::string& callback_id,
     brave_shields::AdBlockCustomResourceProvider::ErrorCode error_code) {
   AllowJavascript();
@@ -341,50 +351,72 @@ void AdblockDOMHandler::OnScriptletUpdateStatus(
                             base::Value(static_cast<int>(error_code)));
 }
 
-void AdblockDOMHandler::HandleGetCustomScriptlets(const base::ListValue& args) {
+void AdblockDOMHandler::HandleGetCustomResources(const base::ListValue& args) {
+  CHECK(args.size() == 2u && args[0].is_string() && args[1].is_string());
+
+  g_browser_process->ad_block_service()
+      ->custom_resource_provider()
+      ->GetCustomResources(args[1].GetString(),
+          base::BindOnce(&AdblockDOMHandler::OnGetCustomResources,
+                         weak_factory_.GetWeakPtr(), args[0].GetString()));
+}
+
+void AdblockDOMHandler::HandleGetCustomResourceKeys(const base::ListValue& args) {
   CHECK(args.size() == 1u && args[0].is_string());
 
   g_browser_process->ad_block_service()
       ->custom_resource_provider()
-      ->GetCustomResources(
-          base::BindOnce(&AdblockDOMHandler::OnGetCustomScriptlets,
+      ->GetKeys(base::BindOnce(&AdblockDOMHandler::OnGetCustomResources,
                          weak_factory_.GetWeakPtr(), args[0].GetString()));
 }
 
-void AdblockDOMHandler::HandleAddCustomScriptlet(const base::ListValue& args) {
-  CHECK(args.size() == 2u && args[0].is_string() && args[1].is_dict());
-
-  g_browser_process->ad_block_service()
-      ->custom_resource_provider()
-      ->AddResource(
-          Profile::FromWebUI(web_ui())->GetPrefs(), args[1],
-          base::BindOnce(&AdblockDOMHandler::OnScriptletUpdateStatus,
-                         weak_factory_.GetWeakPtr(), args[0].GetString()));
-}
-
-void AdblockDOMHandler::HandleUpdateCustomScriptlet(
-    const base::ListValue& args) {
+void AdblockDOMHandler::HandleAddCustomResource(const base::ListValue& args) {
   CHECK(args.size() == 3u && args[0].is_string() && args[1].is_string() &&
         args[2].is_dict());
 
   g_browser_process->ad_block_service()
       ->custom_resource_provider()
-      ->UpdateResource(
-          Profile::FromWebUI(web_ui())->GetPrefs(), args[1].GetString(),
-          args[2],
-          base::BindOnce(&AdblockDOMHandler::OnScriptletUpdateStatus,
+      ->AddResource(args[1].GetString(),
+          Profile::FromWebUI(web_ui())->GetPrefs(), args[2],
+          base::BindOnce(&AdblockDOMHandler::OnResourceUpdateStatus,
                          weak_factory_.GetWeakPtr(), args[0].GetString()));
 }
 
-void AdblockDOMHandler::HandleRemoveCustomScriptlet(
+void AdblockDOMHandler::HandleUpdateCustomResource(
+    const base::ListValue& args) {
+  CHECK(args.size() == 4u && args[0].is_string() && args[1].is_string() &&
+        args[2].is_string() && args[3].is_dict());
+
+  g_browser_process->ad_block_service()
+      ->custom_resource_provider()
+      ->UpdateResource(args[1].GetString(),
+          Profile::FromWebUI(web_ui())->GetPrefs(), args[2].GetString(),
+          args[3],
+          base::BindOnce(&AdblockDOMHandler::OnResourceUpdateStatus,
+                         weak_factory_.GetWeakPtr(), args[0].GetString()));
+}
+
+void AdblockDOMHandler::HandleRemoveCustomResource(
+    const base::ListValue& args) {
+  CHECK(args.size() == 3u && args[0].is_string() && args[1].is_string() &&
+        args[2].is_string());
+
+  g_browser_process->ad_block_service()
+      ->custom_resource_provider()
+      ->RemoveResource(args[1].GetString(),
+          Profile::FromWebUI(web_ui())->GetPrefs(), args[2].GetString(),
+          base::BindOnce(&AdblockDOMHandler::OnResourceUpdateStatus,
+                         weak_factory_.GetWeakPtr(), args[0].GetString()));
+}
+
+void AdblockDOMHandler::HandleRemoveCustomResourceKey(
     const base::ListValue& args) {
   CHECK(args.size() == 2u && args[0].is_string() && args[1].is_string());
 
   g_browser_process->ad_block_service()
       ->custom_resource_provider()
-      ->RemoveResource(
-          Profile::FromWebUI(web_ui())->GetPrefs(), args[1].GetString(),
-          base::BindOnce(&AdblockDOMHandler::OnScriptletUpdateStatus,
+      ->RemoveKey(args[1].GetString(),
+          base::BindOnce(&AdblockDOMHandler::OnResourceUpdateStatus,
                          weak_factory_.GetWeakPtr(), args[0].GetString()));
 }
 

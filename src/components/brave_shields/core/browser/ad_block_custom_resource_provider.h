@@ -23,6 +23,8 @@ class PrefService;
 
 namespace brave_shields {
 
+constexpr const char kStorageScriptletsKey[] = "SCRIPTLETS";
+
 class AdBlockCustomResourceProvider
     : public AdBlockResourceProvider,
       private AdBlockResourceProvider::Observer {
@@ -47,15 +49,20 @@ class AdBlockCustomResourceProvider
       std::unique_ptr<AdBlockResourceProvider> default_resource_provider);
   ~AdBlockCustomResourceProvider() override;
 
-  void GetCustomResources(GetCallback callback);
-  void AddResource(PrefService* profile_prefs,
+  void GetKeys(GetCallback callback);
+  void RemoveKey(const std::string& key, StatusCallback on_complete);
+  void GetCustomResources(const std::string& key, GetCallback callback);
+  void AddResource(const std::string& key,
+                   PrefService* profile_prefs,
                    const base::Value& resource,
                    StatusCallback on_complete);
-  void UpdateResource(PrefService* profile_prefs,
+  void UpdateResource(const std::string& key,
+                      PrefService* profile_prefs,
                       const std::string& name,
                       const base::Value& resource,
                       StatusCallback on_complete);
-  void RemoveResource(PrefService* profile_prefs,
+  void RemoveResource(const std::string& key,
+                      PrefService* profile_prefs,
                       const std::string& resource_name,
                       StatusCallback on_complete);
 
@@ -72,18 +79,21 @@ class AdBlockCustomResourceProvider
   // AdBlockResourceProvider::Observer:
   void OnResourcesLoaded(AdblockResourceStorageBox) override;
 
-  void AddResourceInternal(base::Value resource,
+  void AddResourceInternal(const std::string& key,
+                           base::Value resource,
                            StatusCallback on_complete,
                            base::Value resources);
-  void UpdateResourceInternal(const std::string& name,
+  void UpdateResourceInternal(const std::string& key,
+                              const std::string& name,
                               base::Value resource,
                               StatusCallback on_complete,
                               base::Value resources);
-  void RemoveResourceInternal(const std::string& name,
+  void RemoveResourceInternal(const std::string& key,
+                              const std::string& name,
                               StatusCallback on_complete,
                               base::Value resources);
 
-  void SaveResources(base::Value resources);
+  void SaveResources(const std::string& key, base::Value resources);
 
   void OnDefaultResourcesLoaded(
       base::OnceCallback<void(AdblockResourceStorageBox)> on_load,

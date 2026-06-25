@@ -87,9 +87,22 @@ td > textarea {
       <button class="apply" id="applySub">Add new subscription</button>
     </div>
     <div class="box">
-      <h3>Custom Filters</h3>
+      <h3>Filters</h3>
       <textarea id='customFilters'></textarea>
       <button class="apply" id="applyFilters">Save filters</button>
+    </div>
+    <div class="box">
+      <h3>Resource Bundles</h3>
+      <table id='customBundles'>
+          <tr>
+              <th class="plus"></th>
+              <th>Name</th>
+          </tr>
+      </table>
+    </div>
+    <div class="box">
+        <input type="file" id="bundleFile" style="margin-bottom: 0.5rem;"/>
+        <button class="apply" id="importBundleButton">Import resource bundle</button>
     </div>
     <div class="box">
       <h3>Scriptlets</h3>
