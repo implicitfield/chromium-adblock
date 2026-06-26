@@ -89,7 +89,7 @@ const generateResources = () => {
     // This list matches the one in build_resource_from_file_contents
     // in adblock-rust.
     if (mime == "text/html" || mime == "application/javascript" || mime == "text/plain") {
-      content = Buffer.from(fs.readFileSync(resourcePath, "utf8").replace("\r", "")).toString('base64');
+      content = Buffer.from(fs.readFileSync(resourcePath, "utf8").replaceAll("\r", "")).toString('base64');
     } else {
       content = fs.readFileSync(resourcePath).toString('base64');
     }
