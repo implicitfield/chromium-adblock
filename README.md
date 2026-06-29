@@ -15,7 +15,7 @@ This means:
 - No additional connections are made by default
 - Support for importing arbitrary resources
 
-This currently targets version `149.0.7827.196` of Chromium.
+This currently targets version `149.0.7827.200` of Chromium.
 
 ## License
 
@@ -70,6 +70,7 @@ Custom filters, subscriptions and scriptlets can be configured at `chrome://adbl
 I'd recommend adding at least the following subscriptions (one-by-one, also note that the last two rely on scriptlets):
 ```
 https://easylist.to/easylist/easylist.txt
+https://easylist.to/easylist/easyprivacy.txt
 https://github.com/uBlockOrigin/uAssets/raw/refs/heads/master/filters/filters.txt
 https://github.com/uBlockOrigin/uAssets/raw/refs/heads/master/filters/quick-fixes.txt
 ```
@@ -93,7 +94,7 @@ Then do this:
 $ (chromium) git diff --diff-filter=A (root commit) HEAD > (here)/new.patch
 $ (chromium) git diff --diff-filter=M (root commit) HEAD | sed '/^diff --git/d' | sed '/^index /d' > (here)/core.patch
 # remove everything under src so that the patch'll apply
-$ rm -rf (here)src/*
+$ rm -rf (here)/src/*
 $ patch -p1 -d (here)/src < (here)/new.patch
 $ rm (here)/new.patch
 ```

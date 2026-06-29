@@ -1200,6 +1200,18 @@
  ];
  
  /**
+--- a/third_party/rust/chromium_crates_io/BUILD.gn.hbs
++++ b/third_party/rust/chromium_crates_io/BUILD.gn.hbs
+@@ -152,6 +152,9 @@ cargo_crate("{{this.name}}") {
+   {{#if output_dir}}
+   output_dir = "{{output_dir}}"
+   {{/if}}
++  {{#if extra_kv.raw_gn}}
++    {{extra_kv.raw_gn}}
++  {{/if}}
+   {{#if native_libs}}
+   native_libs = [
+   {{#each native_libs}}
 --- a/third_party/rust/chromium_crates_io/Cargo.toml
 +++ b/third_party/rust/chromium_crates_io/Cargo.toml
 @@ -42,6 +42,7 @@ indexmap = "2.12.1"
@@ -1236,7 +1248,7 @@
 +features += [
 +  "object-pooling",
 +  "lifeguard",
-+  "unsync-regex-caching",
++  "single-thread",
 +]
 +deps += [ "//third_party/rust/lifeguard/v0_6:lib" ]
 +''', allow_unsafe = true }
@@ -1344,7 +1356,7 @@
  extra_kv = { allow_unsafe = true }
  
 +[crate.lifeguard]
-+extra_kv = { allow_unsafe = false }
++extra_kv = { allow_unsafe = true }
 +
  [crate.litemap.extra_kv]
  allow_unsafe = false
