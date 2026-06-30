@@ -38,10 +38,6 @@ class AdBlockCustomFiltersProvider : public AdBlockFiltersProvider {
   std::string GetCustomFilters();
   bool UpdateCustomFilters(std::string_view custom_filters);
 
-  // Used in BraveAdBlockHandler and updates the manually edited custom filters.
-  bool UpdateCustomFiltersFromSettings(PrefService* profile_prefs,
-                                       std::string_view custom_filters);
-
   // AdBlockFiltersProvider
   void LoadFilterSet(
       base::OnceCallback<void(

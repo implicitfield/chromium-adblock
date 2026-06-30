@@ -199,8 +199,7 @@ void AdblockDOMHandler::HandleUpdateCustomFilters(const base::ListValue& args) {
   std::string custom_filters = args[0].GetString();
   g_browser_process->ad_block_service()
       ->custom_filters_provider()
-      ->UpdateCustomFiltersFromSettings(
-          Profile::FromWebUI(web_ui())->GetPrefs(), custom_filters);
+      ->UpdateCustomFilters(custom_filters);
 }
 
 void AdblockDOMHandler::HandleSubmitNewSubscription(

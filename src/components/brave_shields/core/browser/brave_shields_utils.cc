@@ -66,8 +66,4 @@ DomainBlockingType GetDomainBlockingType(HostContentSettingsMap* map,
   return DomainBlockingType::kAggressive;
 }
 
-bool IsDeveloperModeEnabled(PrefService*) {
-  return true;
-}
-
 }  // namespace brave_shields

@@ -84,15 +84,6 @@ bool AdBlockCustomFiltersProvider::UpdateCustomFilters(
   return true;
 }
 
-bool AdBlockCustomFiltersProvider::UpdateCustomFiltersFromSettings(
-    PrefService* profile_prefs,
-    std::string_view custom_filters) {
-  if (!IsDeveloperModeEnabled(profile_prefs)) {
-    return false;
-  }
-  return UpdateCustomFilters(custom_filters);
-}
-
 void AdBlockCustomFiltersProvider::LoadFilterSet(
     base::OnceCallback<
         void(base::OnceCallback<void(rust::Box<adblock::FilterSet>*)>)> cb) {
