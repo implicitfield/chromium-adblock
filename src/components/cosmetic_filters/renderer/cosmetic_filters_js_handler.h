@@ -42,7 +42,7 @@ class CosmeticFiltersJSHandler : public mojom::CosmeticFiltersAgent {
   // filtering is enabled, and returns whether or not to proceed with cosmetic
   // filtering.
   bool ProcessURL(const GURL& url, std::optional<base::OnceClosure> callback);
-  void ApplyRules(bool de_amp_enabled);
+  void ApplyRules();
 
  private:
   void BindFunctionsToObject(v8::Isolate* isolate,

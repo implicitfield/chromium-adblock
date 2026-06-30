@@ -52,15 +52,13 @@ void EnsureIsolatedWorldInitialized(int world_id) {
 
 CosmeticFiltersJsRenderFrameObserver::CosmeticFiltersJsRenderFrameObserver(
     content::RenderFrame* render_frame,
-    const int32_t isolated_world_id,
-    base::RepeatingCallback<bool(void)> get_de_amp_enabled_closure)
+    const int32_t isolated_world_id)
     : RenderFrameObserver(render_frame),
       RenderFrameObserverTracker<CosmeticFiltersJsRenderFrameObserver>(
           render_frame),
       isolated_world_id_(isolated_world_id),
       native_javascript_handle_(
           new CosmeticFiltersJSHandler(render_frame, isolated_world_id)),
-      get_de_amp_enabled_closure_(std::move(get_de_amp_enabled_closure)),
       ready_(new base::OneShotEvent()) {}
 
 CosmeticFiltersJsRenderFrameObserver::~CosmeticFiltersJsRenderFrameObserver() =
@@ -113,8 +111,7 @@ void CosmeticFiltersJsRenderFrameObserver::RunScriptsAtDocumentStart() {
 }
 
 void CosmeticFiltersJsRenderFrameObserver::ApplyRules() {
-  bool de_amp_enabled = get_de_amp_enabled_closure_.Run();
-  native_javascript_handle_->ApplyRules(de_amp_enabled);
+  native_javascript_handle_->ApplyRules();
 }
 
 void CosmeticFiltersJsRenderFrameObserver::OnProcessURL() {

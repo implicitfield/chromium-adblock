@@ -21,7 +21,6 @@ BASE_DECLARE_FEATURE(kBraveAdblockCollapseBlockedElements);
 BASE_DECLARE_FEATURE(kBraveAdblockCosmeticFiltering);
 BASE_DECLARE_FEATURE(kBraveAdblockProceduralFiltering);
 BASE_DECLARE_FEATURE(kBraveAdblockCspRules);
-BASE_DECLARE_FEATURE(kBraveAdblockScriptletDebugLogs);
 BASE_DECLARE_FEATURE(kBraveDomainBlock);
 BASE_DECLARE_FEATURE(kBraveExtensionNetworkBlocking);
 BASE_DECLARE_FEATURE(kCosmeticFilteringExtraPerfMetrics);

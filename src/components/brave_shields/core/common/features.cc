@@ -24,8 +24,6 @@ BASE_FEATURE(kBraveAdblockCosmeticFiltering, base::FEATURE_ENABLED_BY_DEFAULT);
 // `:has-text(...)` and `:upward(...)`.
 BASE_FEATURE(kBraveAdblockProceduralFiltering,
              base::FEATURE_ENABLED_BY_DEFAULT);
-BASE_FEATURE(kBraveAdblockScriptletDebugLogs,
-             base::FEATURE_DISABLED_BY_DEFAULT);
 BASE_FEATURE(kBraveAdblockCspRules, base::FEATURE_ENABLED_BY_DEFAULT);
 // When enabled, Brave will block domains listed in the user's selected adblock
 // filters and present a security interstitial with choice to proceed and

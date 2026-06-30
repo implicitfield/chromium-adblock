@@ -46,7 +46,7 @@ constexpr char kObservingScriptletEntryPoint[] =
 
 constexpr char kScriptletInitScript[] =
     R"((function() {
-          let text = '(function() {\nconst scriptletGlobals = (() => {\nconst forwardedMapMethods = ["has", "get", "set"];\nconst handler = {\nget(target, prop) { if (forwardedMapMethods.includes(prop)) { return Map.prototype[prop].bind(target) } return target.get(prop); },\nset(target, prop, value) { if (!forwardedMapMethods.includes(prop)) { target.set(prop, value); } }\n};\nreturn new Proxy(new Map(%s), handler);\n})();\nlet deAmpEnabled = %s;\n' + %s + '})()';
+          let text = '(function() {\nconst scriptletGlobals = (() => {\nconst forwardedMapMethods = ["has", "get", "set"];\nconst handler = {\nget(target, prop) { if (forwardedMapMethods.includes(prop)) { return Map.prototype[prop].bind(target) } return target.get(prop); },\nset(target, prop, value) { if (!forwardedMapMethods.includes(prop)) { target.set(prop, value); } }\n};\nreturn new Proxy(new Map(), handler);\n})();\n' + %s + '})()';
           let script;
           try {
             script = document.createElement('script');
@@ -543,7 +543,7 @@ void CosmeticFiltersJSHandler::OnUrlCosmeticResources(
   std::move(callback).Run();
 }
 
-void CosmeticFiltersJSHandler::ApplyRules(bool de_amp_enabled) {
+void CosmeticFiltersJSHandler::ApplyRules() {
   blink::WebLocalFrame* web_frame = render_frame_->GetWebFrame();
   if (!resources_dict_ || web_frame->IsProvisional())
     return;
@@ -556,13 +556,7 @@ void CosmeticFiltersJSHandler::ApplyRules(bool de_amp_enabled) {
 
   if (injected_script &&
       base::JSONWriter::Write(*injected_script, &scriptlet_script)) {
-    const bool scriptlet_debug_enabled = base::FeatureList::IsEnabled(
-        brave_shields::features::kBraveAdblockScriptletDebugLogs);
-
-    scriptlet_script =
-        absl::StrFormat(kScriptletInitScript,
-                        scriptlet_debug_enabled ? "[[\"canDebug\", true]]" : "",
-                        de_amp_enabled ? "true" : "false", scriptlet_script);
+    scriptlet_script = absl::StrFormat(kScriptletInitScript, scriptlet_script);
   }
   if (!scriptlet_script.empty()) {
     web_frame->ExecuteScriptInIsolatedWorld(

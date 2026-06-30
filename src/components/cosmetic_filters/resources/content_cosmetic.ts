@@ -1074,50 +1074,6 @@ const onMutations = (
   }
 }
 
-const unhideSelectors = (selectors: Set<string>) => {
-  if (selectors.size === 0) {
-    return
-  }
-  // Find selectors we have a rule index for
-  const rulesToRemove = Array.from(selectors)
-    .map((selector) => CC.allSelectorsToRules.get(selector))
-    .filter((i) => i !== undefined)
-    .sort()
-    .reverse()
-  // Delete the rules
-  let lastIdx: number = CC.allSelectorsToRules.size - 1
-  for (const ruleIdx of rulesToRemove) {
-    // Safe to asset ruleIdx is a number because we've already filtered out
-    // any `undefined` instances with the filter call above.
-    CC.cosmeticStyleSheet.deleteRule(ruleIdx)
-  }
-  // Re-sync the indexes
-  // TODO: Sync is hard, just re-build by iterating through the StyleSheet rules.
-  const ruleLookup = Array.from(CC.allSelectorsToRules.entries())
-  let countAtLastHighest = rulesToRemove.length
-  for (let i = lastIdx; i > 0; i--) {
-    const [selector, oldIdx] = ruleLookup[i]!
-    // Is this one we removed?
-    if (rulesToRemove.includes(i)) {
-      CC.allSelectorsToRules.delete(selector)
-      countAtLastHighest--
-      if (countAtLastHighest === 0) {
-        break
-      }
-      continue
-    }
-    if (oldIdx !== i) {
-      // Probably out of sync
-      console.error('Cosmetic Filters: old index did not match lookup index', {
-        selector,
-        oldIdx,
-        i,
-      })
-    }
-    CC.allSelectorsToRules.set(selector, oldIdx - countAtLastHighest)
-  }
-}
-
 const queryAttrsFromDocument = (switchToMutationObserverAtTime?: number) => {
   // Callback to c++ renderer process
   // @ts-expect-error

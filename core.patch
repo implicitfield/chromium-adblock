@@ -699,6 +699,18 @@
        "//chrome/browser/resources/contextual_tasks:resources",
        "//chrome/browser/resources/glic:resources",
        "//chrome/browser/resources/saved_tab_groups_unsupported:resources",
+--- a/chrome/common/chrome_isolated_world_ids.h
++++ b/chrome/common/chrome_isolated_world_ids.h
+@@ -19,6 +19,9 @@ enum ChromeIsolatedWorldIDs {
+   // Isolated world ID for internal Chrome features.
+   ISOLATED_WORLD_ID_CHROME_INTERNAL,
+ 
++  // Isolated world ID for chromium-adblock.
++  ISOLATED_WORLD_ID_ADBLOCK,
++
+ #if BUILDFLAG(IS_MAC)
+   // Isolated world ID for AppleScript.
+   ISOLATED_WORLD_ID_APPLESCRIPT,
 --- a/chrome/common/webui_url_constants.cc
 +++ b/chrome/common/webui_url_constants.cc
 @@ -199,6 +199,7 @@ base::span<const base::cstring_view> ChromeURLHosts() {
@@ -753,23 +765,20 @@
  #include "components/country_codes/country_codes.h"
  #include "components/dom_distiller/content/renderer/distillability_agent.h"
  #include "components/dom_distiller/content/renderer/distiller_js_render_frame_observer.h"
-@@ -792,6 +794,15 @@ void ChromeContentRendererClient::RenderFrameCreated(
+@@ -792,6 +794,12 @@ void ChromeContentRendererClient::RenderFrameCreated(
      WebUIBrowserRendererExtension::Create(render_frame);
    }
  #endif
 +
 +  if (base::FeatureList::IsEnabled(
 +          brave_shields::features::kBraveAdblockCosmeticFiltering)) {
-+    auto dynamic_params_closure = base::BindRepeating([]() { return false; });
-+
 +    new cosmetic_filters::CosmeticFiltersJsRenderFrameObserver(
-+        render_frame, ISOLATED_WORLD_ID_CHROME_INTERNAL,
-+        dynamic_params_closure);
++        render_frame, ISOLATED_WORLD_ID_ADBLOCK);
 +  }
  }
  
  void ChromeContentRendererClient::WebViewCreated(
-@@ -1396,6 +1407,13 @@ ChromeContentRendererClient::CreateSpeechRecognitionClient(
+@@ -1396,6 +1404,13 @@ ChromeContentRendererClient::CreateSpeechRecognitionClient(
  
  void ChromeContentRendererClient::RunScriptsAtDocumentStart(
      content::RenderFrame* render_frame) {
