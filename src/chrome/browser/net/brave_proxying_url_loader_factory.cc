@@ -234,37 +234,6 @@ void BraveProxyingURLLoaderFactory<T>::InProgressRequest::RestartInternal() {
   continuation.Run(net::OK);
 }
 
-#ifdef LEGACY_PREFETCH_PARAMS
-template <template <typename> class T>
-void BraveProxyingURLLoaderFactory<T>::InProgressRequest::FollowRedirect(
-    const std::vector<std::string>& removed_headers,
-    const ::net::HttpRequestHeaders& modified_headers,
-    const ::net::HttpRequestHeaders& modified_cors_exempt_headers,
-    const std::optional<GURL>& new_url) {
-  if (new_url) {
-    request_.url = new_url.value();
-  }
-
-  for (const std::string& header : removed_headers) {
-    request_.headers.RemoveHeader(header);
-  }
-  request_.headers.MergeFrom(modified_headers);
-
-  UpdateRequestInfo();
-
-  if (target_loader_.is_bound()) {
-    auto params = std::make_unique<FollowRedirectParams>();
-    params->removed_headers = std::move(removed_headers);
-    params->modified_headers = std::move(modified_headers);
-    params->modified_cors_exempt_headers =
-        std::move(modified_cors_exempt_headers);
-    params->new_url = new_url;
-    pending_follow_redirect_params_ = std::move(params);
-  }
-
-  RestartInternal();
-}
-#else
 template <template <typename> class T>
 void BraveProxyingURLLoaderFactory<T>::InProgressRequest::FollowRedirect(
     network::HttpRequestHeadersUpdateParams headers_update_params,
@@ -293,7 +262,6 @@ void BraveProxyingURLLoaderFactory<T>::InProgressRequest::FollowRedirect(
 
   RestartInternal();
 }
-#endif
 
 template <template <typename> class T>
 void BraveProxyingURLLoaderFactory<T>::InProgressRequest::SetPriority(

@@ -15,9 +15,6 @@
 #include <utility>
 #include <vector>
 
-// Drop this once crrev.com/c/7835601 lands on stable
-#define LEGACY_PREFETCH_PARAMS
-
 #include "base/containers/unique_ptr_adapters.h"
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
@@ -35,13 +32,7 @@
 #include "mojo/public/cpp/bindings/remote.h"
 #include "net/base/completion_once_callback.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
-#ifdef LEGACY_PREFETCH_PARAMS
-// See the comment above, you probably want to remove this conditional
-// if this is making the build fail.
-#include "content/public/browser/prefetch_update_headers_params.h"
-#else
 #include "services/network/public/cpp/http_request_headers_update_params.h"
-#endif
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/mojom/early_hints.mojom-forward.h"
 #include "services/network/public/mojom/network_context.mojom.h"
@@ -97,17 +88,9 @@ class BraveProxyingURLLoaderFactory : public network::mojom::URLLoaderFactory {
                               const std::string& description);
 
     // network::mojom::URLLoader:
-#ifdef LEGACY_PREFETCH_PARAMS
-    void FollowRedirect(
-        const std::vector<std::string>& removed_headers,
-        const ::net::HttpRequestHeaders& modified_headers,
-        const ::net::HttpRequestHeaders& modified_cors_exempt_headers,
-        const std::optional<::GURL>& new_url) override;
-#else
     void FollowRedirect(
         network::HttpRequestHeadersUpdateParams headers_update_params,
         const std::optional<GURL>& new_url) override;
-#endif
     void SetPriority(net::RequestPriority priority,
                      int32_t intra_priority_value) override;
 

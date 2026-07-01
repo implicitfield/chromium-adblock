@@ -32,7 +32,6 @@ mojom_component("mojom") {
   generate_java = true
   sources = [
     "filter_list.mojom",
-    "shields_settings.mojom",
   ]
 
   deps = [

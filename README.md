@@ -15,7 +15,7 @@ This means:
 - No additional connections are made by default
 - Support for importing arbitrary resources
 
-This currently targets version `149.0.7827.200` of Chromium.
+This currently targets version `150.0.7871.46` of Chromium.
 
 ## License
 
@@ -38,8 +38,6 @@ $ patch -p1 -d /path/to/source/tree < core.patch
 
 Then get new crates and reconfigure old ones. Note that this requires connecting to `crates.io`:
 ```sh
-## this file is missing for some reason
-$ echo '{"files":{}}' > third_party/rust/chromium_crates_io/vendor/hex-v0_4/.cargo-checksum.json
 ## this only contains partial sources? re-vendor it
 rm -rf third_party/rust/chromium_crates_io/vendor/semver-v1
 ## you likely also need to provide --rust-sysroot if you use an unbundled rust toolchain
