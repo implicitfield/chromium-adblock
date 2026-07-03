@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "base/check.h"
-#include "base/debug/leak_annotations.h"
 #include "base/feature_list.h"
 #include "base/json/json_reader.h"
 #include "base/sequence_checker.h"
@@ -38,9 +37,7 @@ AdBlockEngineWrapper::AdBlockEngineWrapper(
     std::unique_ptr<AdBlockEngine> additional_engine)
     : default_engine_(std::move(default_engine)),
       additional_filters_engine_(std::move(additional_engine)) {
-  // `this` is stored using SequenceBound, so false-positive shutdown leaks
-  // are expected
-  ANNOTATE_LEAKING_OBJECT_PTR(this);
+  DETACH_FROM_SEQUENCE(sequence_checker_);
 }
 
 AdBlockEngineWrapper::~AdBlockEngineWrapper() = default;
