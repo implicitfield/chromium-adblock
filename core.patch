@@ -1,6 +1,6 @@
 --- a/base/trace_event/builtin_categories.h
 +++ b/base/trace_event/builtin_categories.h
-@@ -92,6 +92,8 @@ PERFETTO_DEFINE_CATEGORIES_IN_NAMESPACE_
+@@ -92,6 +92,8 @@ PERFETTO_DEFINE_CATEGORIES_IN_NAMESPACE_WITH_ATTRS(
      perfetto::Category("base.power").SetDescription(
        "Events about global system power and battery/thermal state.")
        .SetTags("toplevel"),
@@ -22,7 +22,7 @@
  #define IDC_VIEW_SOURCE                 35002
 --- a/chrome/app/generated_resources.grd
 +++ b/chrome/app/generated_resources.grd
-@@ -603,6 +603,9 @@ are declared in tools/grit/grit_args.gni
+@@ -603,6 +603,9 @@ are declared in tools/grit/grit_args.gni.
  
         <!-- content area context menus. Android does not use it -->
        <if expr="not is_android">
@@ -65,7 +65,7 @@
      ":defaults",
      ":expired_flags_list",
      ":file_select_helper",
-@@ -1620,6 +1637,7 @@ static_library("browser") {
+@@ -1617,6 +1634,7 @@ static_library("browser") {
      ":chrome_browser_main",
      ":chrome_content_browser_client",
      ":command_updater_impl",
@@ -73,7 +73,7 @@
      ":defaults",
      ":expired_flags_list",
      ":file_select_helper",
-@@ -2642,6 +2660,15 @@ static_library("browser") {
+@@ -2636,6 +2654,15 @@ static_library("browser") {
      "//chrome/browser/sharing/glic_experimental_triggering",
      "//chrome/browser/sharing/glic_experimental_triggering:impl",
      "//chrome/browser/ui/webauthn:impl",
@@ -113,7 +113,7 @@
    // requiring BrowserProcess to have knowledge of them.
 --- a/chrome/browser/browser_process_impl.cc
 +++ b/chrome/browser/browser_process_impl.cc
-@@ -101,6 +101,13 @@
+@@ -103,6 +103,13 @@
  #include "chrome/common/url_constants.h"
  #include "chrome/grit/branded_strings.h"
  #include "chrome/installer/util/google_update_settings.h"
@@ -127,7 +127,7 @@
  #include "components/activity_reporter/activity_reporter.h"
  #include "components/application_locale_storage/application_locale_storage.h"
  #include "components/breadcrumbs/core/application_breadcrumbs_logger.h"
-@@ -727,6 +734,9 @@ void BrowserProcessImpl::PostDestroyThre
+@@ -741,6 +748,9 @@ void BrowserProcessImpl::PostDestroyThreads() {
  #endif
  
    features_->PostDestroyThreads();
@@ -137,7 +137,7 @@
  }
  #endif  // !BUILDFLAG(IS_ANDROID)
  
-@@ -1347,6 +1357,21 @@ StatusTray* BrowserProcessImpl::status_t
+@@ -1361,6 +1371,21 @@ StatusTray* BrowserProcessImpl::status_tray() {
    return status_tray_.get();
  }
  
@@ -161,7 +161,7 @@
  BrowserProcessImpl::safe_browsing_service() {
 --- a/chrome/browser/browser_process_impl.h
 +++ b/chrome/browser/browser_process_impl.h
-@@ -514,6 +514,10 @@ class BrowserProcessImpl : public Browse
+@@ -508,6 +508,10 @@ class BrowserProcessImpl : public BrowserProcess,
    std::optional<std::pair<size_t, std::unique_ptr<os_crypt_async::KeyProvider>>>
        additional_provider_for_test_;
  
@@ -187,7 +187,7 @@
  using blink::mojom::EffectiveConnectionType;
  using blink::web_pref::WebPreferences;
  using content::BrowserThread;
-@@ -5648,6 +5654,21 @@ void ChromeContentBrowserClient::RemoveP
+@@ -5652,6 +5658,21 @@ void ChromeContentBrowserClient::RemovePresentationObserver(
  void ChromeContentBrowserClient::CreateThrottlesForNavigation(
      content::NavigationThrottleRegistry& registry) {
    CreateAndAddChromeThrottlesForNavigation(registry);
@@ -209,7 +209,7 @@
  }
  
  std::vector<std::unique_ptr<content::CommitDeferringCondition>>
-@@ -6688,6 +6709,9 @@ void ChromeContentBrowserClient::WillCre
+@@ -6692,6 +6713,9 @@ void ChromeContentBrowserClient::WillCreateURLLoaderFactory(
      bool* disable_secure_dns,
      network::mojom::URLLoaderFactoryOverridePtr* factory_override,
      scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner) {
@@ -219,7 +219,7 @@
  #if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
    auto* web_request_api =
        extensions::BrowserContextKeyedAPIFactory<extensions::WebRequestAPI>::Get(
-@@ -6804,24 +6828,7 @@ ChromeContentBrowserClient::
+@@ -6808,24 +6832,7 @@ ChromeContentBrowserClient::
  
  bool ChromeContentBrowserClient::WillInterceptWebSocket(
      content::RenderFrameHost* frame) {
@@ -245,7 +245,7 @@
  }
  
  void ChromeContentBrowserClient::CreateWebSocket(
-@@ -6832,20 +6839,52 @@ void ChromeContentBrowserClient::CreateW
+@@ -6836,20 +6843,52 @@ void ChromeContentBrowserClient::CreateWebSocket(
      const std::optional<std::string>& user_agent,
      mojo::PendingRemote<network::mojom::WebSocketHandshakeClient>
          handshake_client) {
@@ -284,11 +284,7 @@
 +    return false;
 +#endif
 +  };
- 
--  DCHECK(web_request_api);
--  web_request_api->ProxyWebSocket(frame, std::move(factory), url,
--                                  site_for_cookies, user_agent,
--                                  std::move(handshake_client));
++
 +  if (WillInterceptWebSocketImpl(frame)) {
 +#if BUILDFLAG(ENABLE_EXTENSIONS_CORE)
 +    // TODO(crbug.com/40195467): Request w/o a frame also should be proxied.
@@ -297,7 +293,11 @@
 +    }
 +    auto* web_request_api = extensions::BrowserContextKeyedAPIFactory<
 +        extensions::WebRequestAPI>::Get(frame->GetBrowserContext());
-+
+ 
+-  DCHECK(web_request_api);
+-  web_request_api->ProxyWebSocket(frame, std::move(factory), url,
+-                                  site_for_cookies, user_agent,
+-                                  std::move(handshake_client));
 +    DCHECK(web_request_api);
 +    web_request_api->ProxyWebSocket(frame, std::move(factory), url,
 +                                    site_for_cookies, user_agent,
@@ -354,20 +354,24 @@
  }  // namespace
  
  void ChromeContentBrowserClient::ExposeInterfacesToRenderer(
-@@ -317,6 +346,12 @@ void ChromeContentBrowserClient::BindMed
+@@ -317,6 +346,16 @@ void ChromeContentBrowserClient::BindMediaServiceReceiver(
  void ChromeContentBrowserClient::RegisterBrowserInterfaceBindersForFrame(
      content::RenderFrameHost* render_frame_host,
      mojo::BinderMapWithContext<content::RenderFrameHost*>* map) {
-+  // NOTE: This is weird. brave registers this after calling this function,
-+  // but doing this at the end instead means that something tries to message
-+  // this before it's bound.
-+  map->Add<cosmetic_filters::mojom::CosmeticFiltersResources>(
-+      base::BindRepeating(&BindCosmeticFiltersResources));
++  auto func_bind_resources =
++      [&](mojo::BinderMapWithContext<content::RenderFrameHost*>* map) {
++        // Chromium doesn't have a proper dedicated scope guard class :(
++        map->Add<cosmetic_filters::mojom::CosmeticFiltersResources>(
++            base::BindRepeating(&BindCosmeticFiltersResources));
++      };
++  std::unique_ptr<mojo::BinderMapWithContext<content::RenderFrameHost*>,
++                  decltype(func_bind_resources)>
++      scope_guard(map, std::move(func_bind_resources));
 +
    chrome::internal::PopulateChromeFrameBinders(map, render_frame_host);
    chrome::internal::PopulateChromeWebUIFrameBinders(map, render_frame_host);
  
-@@ -394,6 +429,11 @@ void ChromeContentBrowserClient::
+@@ -394,6 +433,11 @@ void ChromeContentBrowserClient::
      RegisterAssociatedInterfaceBindersForRenderFrameHost(
          content::RenderFrameHost& render_frame_host,
          blink::AssociatedInterfaceRegistry& associated_registry) {
@@ -409,18 +413,18 @@
  std::unique_ptr<download::Client> CreateBackgroundFetchDownloadClient(
      Profile* profile) {
    return std::make_unique<background_fetch::DownloadClient>(profile);
-@@ -166,6 +185,11 @@ BackgroundDownloadServiceFactory::BuildS
+@@ -165,6 +184,11 @@ BackgroundDownloadServiceFactory::BuildServiceInstanceFor(
+   auto clients = std::make_unique<download::DownloadClientMap>();
    ProfileKey* profile_key = ProfileKey::FromSimpleFactoryKey(key);
  
-   clients->insert(std::make_pair(
++  clients->insert(std::make_pair(
 +      download::DownloadClient::CUSTOM_LIST_SUBSCRIPTIONS,
 +      std::make_unique<download::DeferredClientWrapper>(
 +          base::BindOnce(&CreateAdBlockSubscriptionDownloadClient), key)));
 +
-+  clients->insert(std::make_pair(
+   clients->insert(std::make_pair(
        download::DownloadClient::BACKGROUND_FETCH,
        std::make_unique<download::DeferredClientWrapper>(
-           base::BindOnce(&CreateBackgroundFetchDownloadClient), key)));
 --- a/chrome/browser/net/BUILD.gn
 +++ b/chrome/browser/net/BUILD.gn
 @@ -53,6 +53,15 @@ source_set("net") {
@@ -477,7 +481,7 @@
  #include "components/breadcrumbs/core/breadcrumbs_status.h"
  #include "components/browsing_data/core/pref_names.h"
  #include "components/certificate_transparency/pref_names.h"
-@@ -1324,6 +1325,7 @@ void RegisterLocalState(PrefRegistrySimp
+@@ -1322,6 +1323,7 @@ void RegisterLocalState(PrefRegistrySimple* registry) {
        registry);
  #endif
    autofill::prefs::RegisterLocalStatePrefs(registry);
@@ -495,7 +499,7 @@
  #include "chrome/browser/breadcrumbs/breadcrumb_manager_keyed_service_factory.h"
  #include "chrome/browser/browser_process.h"
  #include "chrome/browser/browsing_data/browsing_data_history_observer_service.h"
-@@ -1542,6 +1543,8 @@ void ChromeBrowserMainExtraPartsProfiles
+@@ -1528,6 +1529,8 @@ void ChromeBrowserMainExtraPartsProfiles::
    autofill::AtMemoryPromoTrackerFactory::GetInstance();
  #endif
  
@@ -506,7 +510,7 @@
  }
 --- a/chrome/browser/renderer_context_menu/render_view_context_menu.cc
 +++ b/chrome/browser/renderer_context_menu/render_view_context_menu.cc
-@@ -372,6 +372,10 @@
+@@ -373,6 +373,10 @@
  #include "ui/base/page_transition_types.h"
  #endif
  
@@ -517,7 +521,7 @@
  using base::UserMetricsAction;
  using blink::ContextMenuData;
  using blink::ContextMenuDataEditFlags;
-@@ -616,13 +620,14 @@ const std::map<int, int>& GetIdcToUmaMap
+@@ -617,13 +621,14 @@ const std::map<int, int>& GetIdcToUmaMap(UmaEnumIdLookupType type) {
         {IDC_CONTENT_CONTEXT_LISTEN_TO_THIS_PAGE, 164},
         {IDC_CONTENT_CONTEXT_DICTATION, 165},
         {IDC_CONTENT_CONTEXT_ADD_LINK_TO_READING_LIST, 166},
@@ -533,7 +537,7 @@
    // LINT.ThenChange(//tools/metrics/histograms/metadata/ui/enums.xml:RenderViewContextMenuItem)
  
    // LINT.IfChange(ContextMenuOptionDesktop)
-@@ -1749,13 +1754,29 @@ void RenderViewContextMenu::AppendDevelo
+@@ -1750,13 +1755,29 @@ void RenderViewContextMenu::AppendDeveloperItems() {
    bool hide_developer_items = IsDevToolsURL(params_.page_url) &&
                                params_.page_url.GetQuery().find(
                                    "debugFrontend=true") == std::string::npos;
@@ -564,7 +568,7 @@
    if (content_type_->SupportsGroup(ContextMenuContentType::ITEM_GROUP_PAGE)) {
      menu_model_.AddItemWithStringId(IDC_VIEW_SOURCE,
                                      IDS_CONTENT_CONTEXT_VIEWPAGESOURCE);
-@@ -3279,6 +3300,9 @@ bool RenderViewContextMenu::IsCommandIdE
+@@ -3281,6 +3302,9 @@ bool RenderViewContextMenu::IsCommandIdEnabled(int id) const {
    }
  #endif
    switch (id) {
@@ -574,7 +578,7 @@
      case IDC_BACK:
        return embedder_web_contents_->GetController().CanGoBack();
  
-@@ -3633,6 +3657,11 @@ void RenderViewContextMenu::ExecuteComma
+@@ -3635,6 +3659,11 @@ void RenderViewContextMenu::ExecuteCommand(int id, int event_flags) {
    }
  
    switch (id) {
@@ -588,7 +592,7 @@
            WindowOpenDisposition::NEW_BACKGROUND_TAB;
 --- a/chrome/browser/resources/BUILD.gn
 +++ b/chrome/browser/resources/BUILD.gn
-@@ -20,6 +20,7 @@ assert(!is_fuchsia, "Fuchsia shouldn't u
+@@ -20,6 +20,7 @@ assert(!is_fuchsia, "Fuchsia shouldn't use anything in //chrome")
  
  group("resources") {
    public_deps = [
@@ -609,7 +613,7 @@
      "webui/commerce/commerce_internals_ui_config.cc",
 --- a/chrome/browser/ui/webui/chrome_web_ui_configs.cc
 +++ b/chrome/browser/ui/webui/chrome_web_ui_configs.cc
-@@ -94,6 +94,7 @@
+@@ -95,6 +95,7 @@
  #include "chrome/browser/ui/webui/app_service_internals/app_service_internals_ui.h"
  #include "chrome/browser/ui/webui/autofill_ml_internals/autofill_ml_internals_ui.h"
  #include "chrome/browser/ui/webui/bookmarks/bookmarks_ui.h"
@@ -617,7 +621,7 @@
  #include "chrome/browser/ui/webui/color_pipeline_internals/color_pipeline_internals_ui.h"
  #include "chrome/browser/ui/webui/commerce/shopping_insights_side_panel_ui.h"
  #include "chrome/browser/ui/webui/downloads/downloads_ui.h"
-@@ -251,6 +252,7 @@ void RegisterChromeWebUIConfigs() {
+@@ -252,6 +253,7 @@ void RegisterChromeWebUIConfigs() {
    map.AddWebUIConfig(std::make_unique<AccessibilityUIConfig>());
    map.AddWebUIConfig(std::make_unique<AutofillInternalsUIConfig>());
    map.AddWebUIConfig(std::make_unique<BluetoothInternalsUIConfig>());
@@ -649,7 +653,7 @@
    ISOLATED_WORLD_ID_APPLESCRIPT,
 --- a/chrome/common/webui_url_constants.cc
 +++ b/chrome/common/webui_url_constants.cc
-@@ -200,6 +200,7 @@ base::span<const base::cstring_view> Chr
+@@ -200,6 +200,7 @@ base::span<const base::cstring_view> ChromeURLHosts() {
  #endif
        content::kChromeUIPrivateAggregationInternalsHost,
        content::kChromeUIAttributionInternalsHost,
@@ -682,7 +686,7 @@
    if (is_mac || is_win || is_linux || is_chromeos) {
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -266,6 +266,10 @@
+@@ -265,6 +265,10 @@
  #include "chrome/renderer/media/chrome_key_systems.h"
  #endif
  
@@ -693,7 +697,7 @@
  using autofill::AutofillAgent;
  using autofill::PasswordAutofillAgent;
  using autofill::PasswordGenerationAgent;
-@@ -790,6 +794,12 @@ void ChromeContentRendererClient::Render
+@@ -789,6 +793,12 @@ void ChromeContentRendererClient::RenderFrameCreated(
    // Wire up the PageStabilityMonitorManager to allow components to
    // request stability monitors for this frame.
    new page_content_annotations::PageStabilityMonitorManager(render_frame);
@@ -706,7 +710,7 @@
  }
  
  void ChromeContentRendererClient::WebViewCreated(
-@@ -1394,6 +1404,13 @@ ChromeContentRendererClient::CreateSpeec
+@@ -1393,6 +1403,13 @@ ChromeContentRendererClient::CreateSpeechRecognitionClient(
  
  void ChromeContentRendererClient::RunScriptsAtDocumentStart(
      content::RenderFrame* render_frame) {
@@ -765,7 +769,7 @@
  // Custom key value pair provided by the client and will be sent back to client
 --- a/components/download/internal/background_service/proto_conversions.cc
 +++ b/components/download/internal/background_service/proto_conversions.cc
-@@ -61,6 +61,8 @@ protodb::DownloadClient ProtoConversions
+@@ -61,6 +61,8 @@ protodb::DownloadClient ProtoConversions::DownloadClientToProto(
        return protodb::DownloadClient::TEST_2;
      case DownloadClient::TEST_3:
        return protodb::DownloadClient::TEST_3;
@@ -774,7 +778,7 @@
      case DownloadClient::OFFLINE_PAGE_PREFETCH:
        return protodb::DownloadClient::OFFLINE_PAGE_PREFETCH;
      case DownloadClient::BACKGROUND_FETCH:
-@@ -93,6 +95,8 @@ DownloadClient ProtoConversions::Downloa
+@@ -93,6 +95,8 @@ DownloadClient ProtoConversions::DownloadClientFromProto(
        return DownloadClient::TEST_2;
      case protodb::DownloadClient::TEST_3:
        return DownloadClient::TEST_3;
@@ -785,7 +789,7 @@
      case protodb::DownloadClient::BACKGROUND_FETCH:
 --- a/components/download/public/background_service/clients.cc
 +++ b/components/download/public/background_service/clients.cc
-@@ -14,6 +14,8 @@ std::string BackgroundDownloadClientToSt
+@@ -14,6 +14,8 @@ std::string BackgroundDownloadClientToString(DownloadClient client) {
      case DownloadClient::TEST_3:
      case DownloadClient::INVALID:
        return "__Test__";
@@ -829,7 +833,7 @@
        <part file="notifications_global_cache_list.grdp" />
 --- a/components/value_store/value_store_frontend.cc
 +++ b/components/value_store/value_store_frontend.cc
-@@ -33,6 +33,37 @@ class ValueStoreFrontend::Backend : publ
+@@ -33,6 +33,37 @@ class ValueStoreFrontend::Backend : public base::RefCountedThreadSafe<Backend> {
    Backend(const Backend&) = delete;
    Backend& operator=(const Backend&) = delete;
  
@@ -867,7 +871,7 @@
    void Get(const std::string& key, ValueStoreFrontend::ReadCallback callback) {
      DCHECK(file_task_runner_->RunsTasksInCurrentSequence());
      LazyInit();
-@@ -127,6 +158,14 @@ ValueStoreFrontend::~ValueStoreFrontend(
+@@ -127,6 +158,14 @@ ValueStoreFrontend::~ValueStoreFrontend() {
    DCHECK(origin_task_runner_->RunsTasksInCurrentSequence());
  }
  
@@ -895,7 +899,7 @@
    void Get(const std::string& key, ReadCallback callback);
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -881,6 +881,8 @@ source_set("browser") {
+@@ -882,6 +882,8 @@ source_set("browser") {
      "devtools/cross_thread_protocol_callback.h",
      "devtools/dedicated_worker_devtools_agent_host.cc",
      "devtools/dedicated_worker_devtools_agent_host.h",
@@ -906,7 +910,7 @@
      "devtools/devtools_background_services_context_impl.cc",
 --- a/content/browser/devtools/protocol/network_handler.cc
 +++ b/content/browser/devtools/protocol/network_handler.cc
-@@ -1576,6 +1576,16 @@ std::vector<NetworkHandler*> NetworkHand
+@@ -1576,6 +1576,16 @@ std::vector<NetworkHandler*> NetworkHandler::ForAgentHost(
    return host->HandlersByName<NetworkHandler>(Network::Metainfo::domainName);
  }
  
@@ -925,7 +929,7 @@
    Network::Dispatcher::wire(dispatcher, this);
 --- a/content/browser/devtools/protocol/network_handler.h
 +++ b/content/browser/devtools/protocol/network_handler.h
-@@ -302,6 +302,11 @@ class NetworkHandler : public DevToolsDo
+@@ -302,6 +302,11 @@ class NetworkHandler : public DevToolsDomainHandler,
  
    void NavigationRequestWillBeSent(const NavigationRequest& nav_request,
                                     base::TimeTicks timestamp);
@@ -997,7 +1001,7 @@
    "front_end/panels/network/RequestDeviceBoundSessionsView.js",
 --- a/third_party/devtools-frontend/src/front_end/core/protocol_client/InspectorBackend.ts
 +++ b/third_party/devtools-frontend/src/front_end/core/protocol_client/InspectorBackend.ts
-@@ -77,6 +77,7 @@ export class InspectorBackend implements
+@@ -77,6 +77,7 @@ export class InspectorBackend implements InspectorBackendCommands.InspectorBacke
      globalThis.Protocol ||= {};
  
      InspectorBackendCommands.registerCommands(this);
@@ -1007,7 +1011,7 @@
    private getOrCreateEventParameterNamesForDomain(domain: ProtocolDomainName): EventParameterNames {
 --- a/third_party/devtools-frontend/src/front_end/core/sdk/NetworkManager.ts
 +++ b/third_party/devtools-frontend/src/front_end/core/sdk/NetworkManager.ts
-@@ -630,6 +630,8 @@ export class NetworkDispatcher implement
+@@ -630,6 +630,8 @@ export class NetworkDispatcher implements ProtocolProxyApi.NetworkDispatcher {
      }
    }
  
@@ -1016,7 +1020,7 @@
    private headersMapToHeadersArray(headersMap: Protocol.Network.Headers): NameValue[] {
      const result = [];
      for (const name in headersMap) {
-@@ -747,6 +749,21 @@ export class NetworkDispatcher implement
+@@ -747,6 +749,21 @@ export class NetworkDispatcher implements ProtocolProxyApi.NetworkDispatcher {
      }
    }
  
@@ -1038,7 +1042,7 @@
    requestForId(id: string): NetworkRequest|null {
      return this.#requestsById.get(id) || null;
    }
-@@ -1267,6 +1284,15 @@ export class NetworkDispatcher implement
+@@ -1267,6 +1284,15 @@ export class NetworkDispatcher implements ProtocolProxyApi.NetworkDispatcher {
    }
  
    clearRequests(): void {
@@ -1077,7 +1081,7 @@
  devtools_entrypoint("bundle") {
 --- a/third_party/devtools-frontend/src/front_end/panels/network/NetworkDataGridNode.ts
 +++ b/third_party/devtools-frontend/src/front_end/panels/network/NetworkDataGridNode.ts
-@@ -1237,6 +1237,26 @@ export class NetworkRequestNode extends
+@@ -1237,6 +1237,26 @@ export class NetworkRequestNode extends NetworkNode {
      this.parentView().dispatchEventToListeners(Events.RequestSelected, this.requestInternal);
    }
  
@@ -1114,7 +1118,7 @@
  import * as Platform from '../../core/platform/platform.js';
  import * as SDK from '../../core/sdk/sdk.js';
  import type * as NetworkTimeCalculator from '../../models/network_time_calculator/network_time_calculator.js';
-@@ -17,6 +18,7 @@ import * as VisualLogging from '../../ui
+@@ -17,6 +18,7 @@ import * as VisualLogging from '../../ui/visual_logging/visual_logging.js';
  
  import * as NetworkComponents from './components/components.js';
  import {EventSourceMessagesView} from './EventSourceMessagesView.js';
@@ -1122,7 +1126,7 @@
  import {RequestCookiesView} from './RequestCookiesView.js';
  import {RequestDeviceBoundSessionsView} from './RequestDeviceBoundSessionsView.js';
  import {RequestHeadersView} from './RequestHeadersView.js';
-@@ -255,6 +257,15 @@ export class NetworkItemView extends UI.
+@@ -255,6 +257,15 @@ export class NetworkItemView extends UI.TabbedPane.TabbedPane {
            trustTokensView, i18nString(UIStrings.trustTokenOperationDetails));
      }
  
@@ -1397,7 +1401,7 @@
          files
 --- a/tools/crates/run_gnrt.py
 +++ b/tools/crates/run_gnrt.py
-@@ -23,6 +23,7 @@ from run_cargo import (RunCargo, DEFAULT
+@@ -23,6 +23,7 @@ from run_cargo import (RunCargo, DEFAULT_SYSROOT)
  def RunGnrt(rust_sysroot, out_dir, gnrt_args):
      target_dir = os.path.abspath(os.path.join(out_dir, 'target'))
      home_dir = os.path.abspath(os.path.join(target_dir, 'cargo_home'))
@@ -1430,7 +1434,7 @@
  <!-- LINT.ThenChange(//chrome/browser/renderer_context_menu/render_view_context_menu.cc:RenderViewContextMenuItem) -->
 --- a/tools/typescript/validate_tsconfig.py
 +++ b/tools/typescript/validate_tsconfig.py
-@@ -134,6 +134,12 @@ def validateJavaScriptAllowed(source_dir
+@@ -134,6 +134,12 @@ def validateJavaScriptAllowed(source_dir, out_dir, platform):
    if platform == 'ios' and '/ios/' in out_dir:
      return True, None
  
