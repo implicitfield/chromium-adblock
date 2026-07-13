@@ -3,6 +3,8 @@
 CHROMIUM_SRC = $(HOME)/src/chromium-150.0.7871.46
 RUST_SYSROOT = /usr/lib/rust-1.91
 
+OS = $(shell uname -s)
+
 run_gnrt := tools/crates/run_gnrt.py \
 	$(if $(RUST_SYSROOT),--rust-sysroot $(RUST_SYSROOT))
 
@@ -36,8 +38,10 @@ build-gnrt: $(chromium_tree)
 ifdef RUST_SYSROOT
 	$(RUST_SYSROOT)/bin/cargo --version
 endif
+ifneq ($(OS), Darwin)
 	pkg-config --version
 	pkg-config --libs openssl
+endif
 	cd $(CHROMIUM_SRC) && $(run_gnrt) help
 
 re-vendor: $(chromium_tree)
