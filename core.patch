@@ -1224,14 +1224,14 @@
  extra_input_roots = ["../README.md"]
  extra_kv = { allow_unsafe = true }
  
-@@ -898,12 +892,15 @@ allow_unsafe = false
+@@ -898,12 +892,16 @@ allow_unsafe = false
  [crate.termcolor.extra_kv]
  allow_unsafe = false
  
 -[crate.thiserror]
 +[crate."thiserror@v2"]
  build_script_outputs = [ "private.rs" ]
--extra_kv = { allow_unsafe = false }
+ extra_kv = { allow_unsafe = false }
  
  [crate.thiserror-impl]
 -extra_kv = { allow_unsafe = false }
@@ -1243,7 +1243,7 @@
  
  [crate.timezone_provider]
  extra_input_roots = ["**/*.data"]
-@@ -1065,3 +1062,115 @@ extra_kv = { allow_unsafe = true }
+@@ -1065,3 +1063,122 @@ extra_kv = { allow_unsafe = true }
  [crate.zoneinfo64]
  extra_input_roots = ["data/zoneinfo64.res"]
  extra_kv = { allow_unsafe = true }
@@ -1268,6 +1268,9 @@
 +[crate.addr]
 +extra_kv = { allow_unsafe = false }
 +
++[crate.arrayvec]
++extra_kv = { allow_unsafe = true }
++
 +[crate.cssparser]
 +extra_kv = { allow_unsafe = true }
 +
@@ -1276,6 +1279,10 @@
 +
 +[crate.derive_more]
 +extra_kv = { allow_unsafe = false }
++
++[crate.derive_more-impl]
++extra_kv = { allow_unsafe = false }
++extra_input_roots = ['../doc', '../README.md']
 +
 +[crate.dtoa]
 +extra_kv = { allow_unsafe = true }
@@ -1399,6 +1406,32 @@
              files.push(license_files_map.get(kind).unwrap().clone());
          }
          files
+--- a/tools/crates/gnrt/vendor.rs
++++ b/tools/crates/gnrt/vendor.rs
+@@ -11,7 +11,6 @@ use crate::inherit::{
+ };
+ use crate::paths::{self, get_build_dir_for_package, get_vendor_dir_for_package};
+ use crate::readme::{self, ReadmeFile};
+-use crate::toml_edit_utils;
+ use crate::unsafe_code_detector;
+ use crate::util::{
+     create_dirs_if_needed, get_guppy_package_graph, init_handlebars,
+@@ -307,7 +306,6 @@ fn fill_allow_unsafe_settings(
+     deps: impl IntoIterator<Item = deps::Package>,
+ ) -> Result<()> {
+     use toml_edit::{DocumentMut, InlineTable, Item, Table, TableLike};
+-    use toml_edit_utils::{format, GNRT_CONFIG_FORMAT_OPTIONS};
+ 
+     fn get_or_insert_table<'doc>(
+         parent: &'doc mut dyn TableLike,
+@@ -359,7 +357,6 @@ fn fill_allow_unsafe_settings(
+     }
+ 
+     if did_make_edits {
+-        format(&mut doc, &GNRT_CONFIG_FORMAT_OPTIONS);
+         write!(File::create(paths.third_party_config_file)?, "{doc}")?;
+     }
+ 
 --- a/tools/crates/run_gnrt.py
 +++ b/tools/crates/run_gnrt.py
 @@ -23,6 +23,7 @@ from run_cargo import (RunCargo, DEFAULT_SYSROOT)
