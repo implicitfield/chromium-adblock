@@ -533,14 +533,6 @@ void BraveProxyingURLLoaderFactory<T>::InProgressRequest::ContinueToSendHeaders(
     }
 
     if (target_loader_.is_bound()) {
-#ifdef LEGACY_PREFETCH_PARAMS
-      target_loader_->FollowRedirect(
-          std::move(pending_follow_redirect_params_->removed_headers),
-          std::move(pending_follow_redirect_params_->modified_headers),
-          std::move(
-              pending_follow_redirect_params_->modified_cors_exempt_headers),
-          pending_follow_redirect_params_->new_url);
-#else
       network::HttpRequestHeadersUpdateParams headers_update_params;
       headers_update_params.removed_headers =
           std::move(pending_follow_redirect_params_->removed_headers);
@@ -550,7 +542,6 @@ void BraveProxyingURLLoaderFactory<T>::InProgressRequest::ContinueToSendHeaders(
           pending_follow_redirect_params_->modified_cors_exempt_headers);
       target_loader_->FollowRedirect(std::move(headers_update_params),
                                      pending_follow_redirect_params_->new_url);
-#endif
     }
 
     // This `.reset()` makes it safe for us to use `std::move` just in the

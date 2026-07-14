@@ -9,7 +9,6 @@ source_set("brave_shields") {
   sources = [
     "ad_block_pref_service_factory.h",
     "ad_block_subscription_download_manager_getter.h",
-    "filter_list_service_factory.h",
   ]
 
   public_deps = [
@@ -33,7 +32,6 @@ source_set("brave_shields_impl") {
   sources = [
     "ad_block_pref_service_factory.cc",
     "ad_block_subscription_download_manager_getter.cc",
-    "filter_list_service_factory.cc",
   ]
 
   public_deps = [ ":brave_shields" ]

@@ -36,8 +36,6 @@ static_library("browser") {
     "domain_block_page.h",
     "domain_block_tab_storage.cc",
     "domain_block_tab_storage.h",
-    "filter_list_service.cc",
-    "filter_list_service.h",
   ]
 
   deps = [
