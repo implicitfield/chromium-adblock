@@ -9,6 +9,20 @@
      perfetto::Category("browser").SetTags("navigation"),
      perfetto::Category("browsing_data"),
      perfetto::Category("CacheStorage"),
+--- a/base/trace_event/memory_infra_background_allowlist.cc
++++ b/base/trace_event/memory_infra_background_allowlist.cc
+@@ -378,6 +378,11 @@ bool IsMemoryDumpProviderInAllowlist(const char* mdp_name) {
+ }
+ 
+ bool IsMemoryAllocatorDumpNameInAllowlist(const std::string& name) {
++  if (name.starts_with("extensions/value_store/"
++                       "Extensions.Database.Open.AdBlock Custom Resources/")) {
++    return true;
++  }
++
+   // Global dumps that are of hex digits are all allowed for background use.
+   if (base::StartsWith(name, "global/", CompareCase::SENSITIVE)) {
+     for (size_t i = strlen("global/"); i < name.size(); i++) {
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -116,6 +116,8 @@

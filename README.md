@@ -15,7 +15,7 @@ This means:
 - No additional connections are made by default
 - Support for importing arbitrary resources
 
-This currently targets version `150.0.7871.114` of Chromium.
+This currently targets version `150.0.7871.124` of Chromium.
 
 ## License
 
